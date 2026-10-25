@@ -6,6 +6,9 @@ funcionamento das expressões posteriores. Manter/descartar foi removido a pedid
 O usuário confirmou depois o funcionamento das repetições. O novo espaçamento e alinhamento dos
 totais ainda precisam de conferência visual real. Para uma primeira passagem, use
 [QUICK_VALIDATION.md](QUICK_VALIDATION.md).
+A contagem de sucessos com `>>` foi adicionada depois desses relatos e também precisa de teste real.
+O usuário aprovou depois o comportamento de `>>`. A extensão `<<` e a remoção dos rótulos ainda
+precisam de conferência real nesta versão.
 Registre data, versão do código, servidor, sistema operacional e modelo do celular ao executar.
 Não inclua token ou informações privadas nas evidências.
 
@@ -29,9 +32,32 @@ Não inclua token ou informações privadas nas evidências.
 - [ ] `5d30+8`: valores exibidos do maior para o menor, incluindo empates, com total correto.
 - [ ] `3d6-2d6`: cada grupo em ordem decrescente, preservando a subtração e a separação dos grupos.
 - [ ] `2#d30`: duas linhas na mesma resposta, cada uma com seu total, sem cabeçalho ou soma geral.
+- [ ] `5d6>>4`: contar 4, 5 e 6 individualmente; mostrar a contagem à esquerda e todos os dados.
+- [ ] `5d6<<3`: contar 1, 2 e 3 individualmente, incluindo o valor exato do alvo.
+- [ ] `5d6<<0`: zero; `5d6<<6` e `5d6<<7`: cinco.
+- [ ] `3#5d6 << 3 atacar`: três linhas na ordem sorteada, com comentário único.
+- [ ] Nenhum rótulo automático de sucesso ou fracasso em `>>` ou `<<`, inclusive com resultado zero.
+- [ ] Comentário escrito pelo jogador permanece intacto, mesmo contendo essas palavras.
+- [ ] `5d6<<`, `5d6<<3+1`, `5d6+FOR<<3` e operadores encadeados: erro sem sorteio parcial.
+- [ ] Dado 1 conta zero e dado 6 conta um em `5d6>>4`; nenhum cancelamento ou sucesso duplo.
+- [ ] `5d6>>7` mostra zero; `5d6>>1` mostra cinco sucessos.
+- [ ] `3#5d6 >> 4 atacar`: três linhas, contagens independentes, ordem preservada e comentário único.
+- [ ] `5d6>>`, `5d6>>4+1`, `5d6+FOR>>4`, `5d6+d4>>4`: erro sem rolagem parcial.
+- [ ] `21#5d6>>4`: rejeitar mais de 100 dados no conjunto.
 - [ ] `3#d30+FOR`: FOR em cada cálculo, valor do atributo exibido uma única vez depois dos resultados.
-- [ ] `2#3d6`: seis sorteios, dois totais; preservar ordem dentro dos grupos e entre repetições.
-- [ ] Comparar `3d6` (decrescente) e `1#3d6` (ordem do sorteio).
+- [ ] `2#3d6`: seis sorteios e dois totais; dados decrescentes em cada linha, sem trocar as linhas.
+- [ ] `3d6` e `1#3d6`: ambos exibem os dados do maior para o menor.
+- [ ] `2#5d6>>4` e `2#5d6<<3`: dados decrescentes, contagens preservadas e resultados separados.
+- [ ] `d6!`: máximo natural gera outro dado; continuar se o extra também for máximo.
+- [ ] `3d6!+TESTE`: somar todos os sorteios e adicionar o atributo uma única vez.
+- [ ] `d30-d6!`: subtrair a soma completa do grupo explosivo.
+- [ ] `2#d6!`: manter uma linha por repetição, sem misturar resultados.
+- [ ] `5d6!>>4`: 6 vale 2; 4 e 5 valem 1; nenhum sorteio extra.
+- [ ] `5d6!<<3`: 1 vale 2; 2 e 3 valem 1; nenhum sorteio extra.
+- [ ] `5d6>>4` e `5d6<<3` sem ! continuam com peso 1 por dado elegível.
+- [ ] `d6!>>7` e `d6!<<0`: zero, pois o crítico também precisa atender ao alvo.
+- [ ] `d6 !`, `d6!!`, `d6!5`, `d6!+`: erro, sem rolagem parcial.
+- [ ] Se uma explosão exigir mais de 100 sorteios, inclusive repetições: erro sem resultado parcial.
 - [ ] `2#d30 atacar`: comentário único ao final, sem alterar cálculos.
 - [ ] `0#d30`, `101#d30`, `2#d30+`, `2#d1`, `2#2#d30`: erro sem resultado parcial.
 - [ ] `51#2d6`: erro por mais de 100 dados; `100#d6+1`: erro por mais de 100 termos.
@@ -91,5 +117,8 @@ Não inclua token ou informações privadas nas evidências.
 | 25/10/2026 | Repetição com # confirmada pelo usuário | Relato positivo | Conversa e imagem | Registrar demais cenários |
 | A preencher | Nova margem e alinhamento dos totais | Pendente | — | Conferir no computador e celular |
 | A preencher | Centralização, seta longa e negrito nos dados 1/máximo | Pendente | — | Conferir após reiniciar |
+| A preencher | Contagem de sucessos com >> | Pendente | — | Conferir contagem, repetição e erros |
+| A preencher | Contagem com << e remoção de rótulos | Pendente | — | Conferir limite inclusivo e resposta |
+| A preencher | ! em somas e contagens | Pendente | — | Conferir extras, pesos e limite de sorteios |
 
 Só registrar como validado no Discord após executar os casos relevantes e resolver falhas.

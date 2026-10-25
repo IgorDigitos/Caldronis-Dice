@@ -1,21 +1,51 @@
-"""Gramática: [N#] dado (('+' | '-') (dado | inteiro | atributo))* [espaço comentário]."""
+"""[N#] expressão [comentário]; contagem: um grupo de dados >> ou << alvo inteiro."""
 
 import re
 
+from dice.limits import (
+    MAX_ATTRIBUTE_NAME,
+    MAX_BATCH_TERMS,
+    MAX_DICE,
+    MAX_INPUT,
+    MAX_INTEGER,
+    MAX_REPETITIONS,
+    MAX_TERMS,
+)
 from dice.models import DiceError, Expression, Term
 
-MAX_INPUT = 1000
-MAX_TERMS = 30
-MAX_DICE = 100
-MAX_REPETITIONS = 100
-MAX_BATCH_TERMS = 100
-MAX_INTEGER = 1_000_000_000
-MAX_ATTRIBUTE_NAME = 32
 START = re.compile(r"(?:[0-9]+#|#\s*[0-9]*d[0-9]+|[0-9]*d[0-9]+)", re.IGNORECASE | re.ASCII)
 REPEAT = re.compile(r"([0-9]+)#", re.ASCII)
-DIE = re.compile(r"([0-9]*)d([0-9]+)", re.IGNORECASE | re.ASCII)
+DIE = re.compile(r"([0-9]*)d([0-9]+)(!)?", re.IGNORECASE | re.ASCII)
 INTEGER = re.compile(r"[0-9]+", re.ASCII)
 ATTRIBUTE = re.compile(r"[A-Za-z][A-Za-z0-9_]*", re.ASCII)
+
+
+def _starts_operator(text: str) -> bool:
+    # Não confundir menções/links/emoji do Discord (<@...>, <https:...>) com comparação.
+    return text[0] in "+-*/%=^()#>!" or re.match(r"<(?:[<=]|\s|[0-9+-]|$)", text) is not None
+
+
+def _parse_count(
+    source: str, position: int, terms: list[Term], repeat_count: int | None
+) -> Expression:
+    if len(terms) != 1 or terms[0].kind != "dice":
+        raise DiceError("Na contagem, use um único grupo sem somas ou atributos. Exemplo: 5d6!>>4.")
+    count_operator = ">>" if source.startswith(">>", position) else "<<"
+    position += 2
+    while position < len(source) and source[position].isspace():
+        position += 1
+    match = INTEGER.match(source, position)
+    if not match or len(match.group()) > 10 or int(match.group()) > MAX_INTEGER:
+        raise DiceError(f"Depois de {count_operator}, use um alvo inteiro de 0 a 1.000.000.000.")
+    end = match.end()
+    if end < len(source) and not source[end].isspace():
+        raise DiceError("Após o alvo, use somente um comentário separado por espaço.")
+    comment = source[end:].strip()
+    if comment and _starts_operator(comment):
+        raise DiceError("A contagem termina no alvo; não acrescente operadores depois dele.")
+    return Expression(
+        source[:end], comment, tuple(terms), repeat_count, int(match.group()), count_operator
+    )
 
 
 def is_candidate(content: str) -> bool:
@@ -54,7 +84,7 @@ def parse(content: str) -> Expression | None:
         ):
             match = None
         if match:
-            count_text, sides_text = match.groups()
+            count_text, sides_text, bang = match.groups()
             # Limitar dígitos antes de converter inteiros vindos do chat.
             if len(count_text) > 3 or len(sides_text) > 6:
                 raise DiceError("Quantidade ou lados fora dos limites.")
@@ -64,7 +94,7 @@ def parse(content: str) -> Expression | None:
             dice_count += count
             if dice_count * (repeat_count or 1) > MAX_DICE:
                 raise DiceError("Máximo de 100 dados no total, contando todas as repetições.")
-            term = Term(sign, "dice", sides, count)
+            term = Term(sign, "dice", sides, count, bool(bang))
         else:
             match = INTEGER.match(source, position)
             if match:
@@ -89,6 +119,8 @@ def parse(content: str) -> Expression | None:
         if position == len(source):
             return Expression(source[:expression_end], "", tuple(terms), repeat_count)
         char = source[position]
+        if source.startswith((">>", "<<"), position):
+            return _parse_count(source, position, terms, repeat_count)
         if char in "+-":
             sign = 1 if char == "+" else -1
             position += 1
@@ -97,8 +129,8 @@ def parse(content: str) -> Expression | None:
             continue
         if position > expression_end:
             # Operadores não suportados nunca viram comentário silenciosamente.
-            if char in "*/%=^()#":
-                raise DiceError("Somente os operadores + e - são permitidos.")
+            if _starts_operator(source[position:]):
+                raise DiceError("Operador não suportado. Use +, -, dados>>alvo ou dados<<alvo.")
             return Expression(
                 source[:expression_end], source[position:], tuple(terms), repeat_count
             )

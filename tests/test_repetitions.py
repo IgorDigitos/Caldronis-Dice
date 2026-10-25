@@ -95,18 +95,20 @@ def test_reference_image_two_lines_no_header_or_grand_total():
     assert format_batch(results) == ("`\u00a012\u00a0` ⟵ [12] 1d30\n`\u00a015\u00a0` ⟵ [15] 1d30",)
 
 
-def test_repeats_preserve_dice_and_line_order():
+def test_repeats_sort_dice_without_reordering_lines():
     values = iter([1, 5, 2, 4, 0, 3])
     results = roll_many(parse("2#3d6"), {}, lambda sides: next(values))
     assert format_batch(results) == (
-        "`\u00a011\u00a0` ⟵ [2, **6**, 3] 3d6\n`\u00a010\u00a0` ⟵ [5, **1**, 4] 3d6",
+        "`\u00a011\u00a0` ⟵ [**6**, 3, 2] 3d6\n`\u00a010\u00a0` ⟵ [5, 4, **1**] 3d6",
     )
+    assert results[0].details[0].values == (2, 6, 3)
+    assert results[1].details[0].values == (5, 1, 4)
 
 
-def test_even_one_explicit_repeat_preserves_order():
+def test_even_one_explicit_repeat_sorts_dice():
     values = iter([1, 5, 2])
     assert format_batch(roll_many(parse("1#3d6"), {}, lambda sides: next(values))) == (
-        "`\u00a011\u00a0` ⟵ [2, **6**, 3] 3d6",
+        "`\u00a011\u00a0` ⟵ [**6**, 3, 2] 3d6",
     )
 
 

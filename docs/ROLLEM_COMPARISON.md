@@ -2,7 +2,13 @@
 
 Pesquisa pública em 25/10/2026. Estado atual após esclarecimento do usuário: manter/descartar foi
 removido; repetição com `#` foi implementada conforme a nova imagem. Sem `#`, a apresentação é
-decrescente; com `#`, mantém a ordem dos sorteios. As demais funções abaixo permanecem propostas.
+decrescente em todas as rolagens, inclusive com `#`, mantendo uma linha por repetição.
+Depois, o usuário escolheu contagem de sucessos
+com `>>` e depois sua extensão `<<`, ambas implementadas para um grupo e alvo inteiro. As tabelas indicam o estado
+atual dos demais recursos.
+Depois disso, o usuário autorizou `!` com duas regras próprias: explosões em somas e críticos em
+dobro, sem dados extras, nas contagens. Essa combinação do Caldronis não deve ser presumida idêntica
+ao Rollem.
 
 ## Identificação e alcance
 
@@ -29,6 +35,8 @@ No Discord, o total aparece em código e o 30 em negrito. A mensagem é uma resp
 original, que identifica o jogador. O nome e avatar do bot dependem da configuração do Discord.
 O total agora recebe margem dos dois lados dentro do código inline e seta longa `⟵`. Em repetições,
 as caixas compartilham a largura do maior total e os números ficam centralizados, incluindo negativos.
+No modo de contagem, essa caixa mostra quantos dados atenderam ao alvo: `>>` significa maior ou
+igual e `<<` menor ou igual. A linha termina com operador e alvo, sem rótulo de sucesso/fracasso.
 
 Entrada: `d30+FOR atacar o guarda`, com FOR=8 e dado 18:
 
@@ -42,8 +50,8 @@ O formato mantém os sinais, valores de atributos e grupos de dados. O usuário 
 em negrito os valores naturais 1 e máximo dentro dos colchetes. Total final, constantes e atributos
 não recebem esse negrito; os destaques não alteram a matemática.
 Exibe os valores de cada grupo do maior para o menor, conforme solicitação posterior do usuário.
-Exceção: `N#expressão` mostra uma linha por repetição, na ordem do sorteio, sem cabeçalho ou soma
-geral. Exemplo: `2#d30` retorna `12 ← [12] 1d30` e `15 ← [15] 1d30` em duas linhas.
+`N#expressão` mostra uma linha por repetição, sem trocar a ordem das linhas e sem cabeçalho ou
+soma geral. Dentro de cada linha, os dados também ficam em ordem decrescente.
 A ordenação muda somente a apresentação; preserva os sorteios originais e o cálculo.
 O texto da expressão conserva os tokens digitados, normalizando espaços em volta dos operadores.
 Comentários são escapados e menções continuam bloqueadas. Respostas grandes são divididas por
@@ -66,18 +74,18 @@ O comportamento do Caldronis foi conferido no código local.
 | Descartar menores | `4d6dl1` ou `4d6d1` | Removido por solicitação do usuário |
 | Descartar maiores | `4d6dh1` | Removido por solicitação do usuário |
 | Repetição | `2#d30`, `6#4d6` | Implementado; corpo precisa começar por dado |
-| Explosão no máximo | `d6!` | Não implementado |
+| Explosão no máximo | `d6!` | Implementado em somas; com >>/<< dobra o crítico sem dados extras |
 | Explosão por limiar | `d6!5` | Não implementado |
 | Multiplicação/divisão | `d20*2`, `d20/2` | Não implementado |
 | Parênteses | `d20+(2*3)` | Não implementado |
 | Ajuste por dado | `4d6++2`, `4d6--2` | Não implementado |
-| Contagem por limiar | `10d6>>4`, `10d6<<3` | Não implementado |
+| Contagem por limiar | `10d6>>4`, `10d6<<3` | Ambos implementados para um grupo e alvo inteiro, sem rótulos |
 | Comparar total | `d20>=15` | Não implementado |
 | Fate | `4dF` | Não implementado; altera dado inicial numérico |
 | Burning Wheel | `B5`, `G5`, `W5`, com variantes abertas | Não implementado; altera regra de início |
 | Explosão por dados iguais | `2d6daro`, `3d6taro`, `3d6aro` | Não implementado |
 | Faixa de destaque | `d20c18` | Sem faixa configurável; destaca 1 e máximo naturais nos colchetes |
-| Desabilitar ordenação | `4d6ns` | Sem sufixo `ns`; preserva ordem usando `1#4d6` |
+| Desabilitar ordenação | `4d6ns` | Não implementado; todos os grupos são exibidos em ordem decrescente |
 
 Outros comportamentos aparecem no [README](https://github.com/rollem-discord/rollem-discord)
 e no [changelog oficial](https://github.com/rollem-discord/rollem-discord/blob/main/packages/bot/CHANGELOG.md):
@@ -107,7 +115,7 @@ Fontes: [Rollem Next](https://rollem.rocks/docs/rollem-next),
 | Sobrescrever sintaxe por usuário | Cargos `rollem:v1`, `rollem:beta`, `rollem:v2` | Não implementado |
 | Escolha de canais | Acesso pode ser restringido nas permissões Discord | Mesma possibilidade pelas permissões Discord |
 | Configurações detalhadas por usuário/canal/servidor | Listadas no planejamento V2 | Não assumir disponibilidade real |
-| Ordenação padrão configurável | Listada no planejamento V2 | Sem # decrescente; com # ordem do sorteio |
+| Ordenação padrão configurável | Listada no planejamento V2 | Ordem decrescente em todos os grupos, sem configuração |
 | Variáveis, aliases e ficha ativa | Listadas no planejamento V2 | Atributos já persistentes; sem aliases ou múltiplas fichas |
 | Cargo para editar outros jogadores | Não confirmado nas fontes consultadas | `/config mestre`, com ID do cargo e autorização no backend |
 
@@ -122,8 +130,10 @@ de dados de um lado. O Caldronis também limita a 100 dados, com lados entre 2 e
 1.000 caracteres e 40 atributos por perfil. Não foi confirmado um teto equivalente de lados do Rollem.
 
 Nas repetições implementadas, o limite vale para o conjunto: `6#20d6` é rejeitado, pois seriam 120
-sorteios. Há também limite de 100 termos para o conjunto e 30 por expressão. Explosões não estão
-implementadas e exigiriam definir um teto de sorteios antes de entrar no produto.
+sorteios. Há também limite de 100 termos para o conjunto e 30 por expressão. Explosões têm teto
+compartilhado de 100 sorteios, incluindo iniciais, extras e repetições; se exceder, o conjunto falha
+sem resultados parciais. Em contagens com `!`, não há sorteios extras: máximo vale 2 no `>>`,
+1 vale 2 no `<<`, desde que atinja o alvo. Sem `!`, o peso de cada dado elegível permanece 1.
 
 Substituir o Rollem para sua mesa exige cobrir os comandos que ela usa e a operação do bot.
 Copiar toda a superfície de sintaxe inclui regras específicas de outros sistemas, mais combinações
@@ -131,10 +141,12 @@ e mais testes. Não é necessário para substituir o uso real da sua mesa.
 
 ## Proposta de sequência — aguardando escolha
 
-1. O usuário escolheu consolidar a versão atual, sem adicionar comandos.
-2. Conferir a nova margem e o alinhamento usando [QUICK_VALIDATION.md](QUICK_VALIDATION.md).
+1. O usuário escolheu contagem por alvo: `5d6>>4` conta 4 ou mais; `5d6<<3` conta 3 ou menos.
+2. Conferir a contagem e os demais casos usando [QUICK_VALIDATION.md](QUICK_VALIDATION.md).
 3. Registrar os cenários do checklist completo que ainda não foram executados.
-4. Escolher novos recursos somente depois, com exemplos concretos do uso na mesa.
+4. Esta versão não aceita somas, subtrações, atributos ou múltiplos grupos com `>>` ou `<<`.
+   Também não adiciona comparação de totais ou cancelamento por 1. O crítico em dobro é ativado
+   somente pelo `!` junto do dado, conforme as escolhas do usuário.
 
 Não copiar automaticamente mecanismos de configuração por nome de cargo. Os comandos slash e IDs
 já usados no Caldronis são mais explícitos e mantêm autorização separada de nomes editáveis.

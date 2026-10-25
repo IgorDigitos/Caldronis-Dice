@@ -1,6 +1,117 @@
 # Validação local — 25/10/2026
 
-## Atualização atual: centralização, seta longa e críticos naturais
+## Atualização atual: dados explosivos e críticos em dobro com !
+
+O usuário autorizou `!` e esclareceu duas regras diferentes:
+
+- Sem `>>`/`<<`, o máximo natural gera um dado extra, que também pode explodir. Somam-se todos
+  os resultados, preservando modificadores, atributos, sinais e repetições.
+- Com `>>`, o máximo natural elegível vale 2 e não gera outro dado.
+- Com `<<`, o 1 natural elegível vale 2 e não gera outro dado.
+
+Contagens sem `!` continuam com peso 1 por dado elegível. Valores que não atendem ao alvo não
+pontuam. Dados em contagens não geram extras, inclusive se o valor for crítico. A formatação
+mostra todos os valores em ordem decrescente e mantém uma linha por repetição e os destaques
+naturais em negrito. Rótulos de sucesso/fracasso não foram reintroduzidos.
+
+O limite de 100 sorteios é compartilhado por termos e repetições, incluindo dados extras.
+O limite é verificado antes de cada chamada ao gerador; uma tentativa de sorteio 101 falha e o
+handler exibe apenas o erro, sem resultados parciais. Os limites comuns foram centralizados
+em `dice/limits.py`, compartilhado pelo parser e motor. Não foram adicionadas dependências.
+
+**298 testes passaram em 4,43 s**, com 32 avisos internos de depreciação da biblioteca.
+Ruff: análise e formatação aprovadas. `pip check`: nenhuma dependência incompatível.
+
+Cobertura nova:
+
+- Máximo, não máximo, cadeias de explosão, grupos mistos e apenas dados marcados explodindo.
+- Soma/subtração e atributos com validação antes do primeiro sorteio.
+- Repetições independentes, todas as faces visíveis, comentários e limites de tamanho.
+- Sequência infinita de máximos interrompida após 100 sorteios; nenhuma chamada 101 ao gerador.
+- Limite compartilhado entre grupos e repetições, sem reiniciar o orçamento em cada um.
+- Rejeição de `!!`, `!5`, espaço antes de !, atributo com ! e sintaxe incompleta.
+- Peso 2 no máximo em >> e no 1 em <<, sem qualquer sorteio extra; valores comuns valem 1.
+- 100 dados críticos com contagem podem retornar 200, mas geram exatamente 100 sorteios.
+- Contagens sem ! e demais recursos continuam cobertos pela suíte de regressão.
+
+**O recurso ! ainda não foi validado no Discord real.** Banco, credenciais e configurações não
+foram alterados. Não houve novo commit ou envio ao GitHub.
+
+## Registro anterior: ordenar dados também nas repetições
+
+O usuário enviou uma comparação com o Rollem e solicitou ordem decrescente dentro de cada linha,
+inclusive com `#`, `>>` e `<<`. A formatação agora ordena todos os grupos do maior para o menor.
+Cada repetição continua em sua própria linha, preservando a ordem das linhas e sua contagem/total.
+Os valores originais permanecem intactos no resultado interno; só a apresentação é ordenada.
+
+**250 testes passaram em 4,62 s.** Ruff (análise e formatação) passou. Permanecem os mesmos 27
+avisos internos de depreciação da biblioteca. Os testes de repetição e contagem verificam a nova
+ordenação, a separação das linhas, os destaques naturais e a preservação dos sorteios originais.
+
+Sem mudança de cálculo, configuração ou banco. **A ordenação nova ainda precisa de conferência
+visual no Discord após reiniciar o bot.** Alterações locais, sem novo commit ou envio ao GitHub.
+
+## Registro anterior: contagem com << e remoção dos rótulos
+
+O usuário aprovou a contagem `>>` e pediu o equivalente `<<`, removendo os rótulos de sucesso
+e fracasso. `>>` conta valores maiores ou iguais ao alvo; `<<` conta menores ou iguais.
+O número à esquerda é a contagem; depois dos dados aparecem somente a expressão, operador e alvo.
+Comentários do jogador são preservados, inclusive quando usam as palavras sucesso/fracasso.
+
+O modelo e os campos internos foram generalizados para contagem por alvo/direção, sem mudança
+no banco. Permanecem os mesmos limites, restrição a um único grupo sem modificadores, suporte
+a espaços, comentário e repetição com `#`. Negrito continua apenas nos dados naturais 1/máximo.
+
+**250 testes passaram em 4,53 s**, com 27 avisos internos de depreciação da biblioteca.
+Ruff (análise e formatação) passou; `pip check` não encontrou dependências incompatíveis.
+
+Cobertura:
+
+- Exemplo `5d6<<3` com `[6, 5, 3, 2, 1]` retorna 3, incluindo igualdade.
+- Todas as 36 combinações de dois d6, com alvos de 0 a 7, em ambos os operadores.
+- Zero, todos os dados, alvo acima dos lados e valores nos limites de entrada.
+- Repetições independentes na ordem original; comentário único e respostas sem rótulos.
+- Casos malformados, alvo inválido, operadores encadeados, atributos/modificadores e excesso
+  de sorteios rejeitados antes de consultas ao banco ou rolagens.
+- Regressão da contagem `>>`, parser normal, formatação, persistência e permissões.
+
+**O modo << e a resposta sem rótulos ainda não foram validados no Discord real.**
+Nenhuma dependência foi adicionada. Credenciais, banco e configurações não foram alterados;
+não foi criado novo commit nem feito envio ao GitHub.
+
+## Registro anterior: contagem de sucessos por alvo
+
+Recurso escolhido pelo usuário: `5d6>>4` conta cada dado com resultado maior ou igual a 4.
+O valor principal passa a ser a contagem, com o sufixo `sucesso`/`sucessos` para distinguir da soma.
+Todos os dados permanecem visíveis, com 1/máximo em negrito somente nos colchetes. Um máximo
+conta um sucesso e um 1 não cancela outros sucessos.
+
+Nesta etapa, a gramática aceita um único grupo de dados e um alvo inteiro de 0 a 1.000.000.000,
+com espaços, comentário e repetição opcional. Somas, subtrações, atributos e múltiplos grupos
+junto de `>>` são rejeitados antes de sortear. Um alvo acima dos lados retorna zero sucessos.
+Os limites de mensagem, repetições e 100 dados para o conjunto continuam valendo.
+
+**214 testes passaram em 4,87 s**, com 25 avisos internos de depreciação da biblioteca.
+Ruff: análise e formatação aprovadas. Cobertura nova:
+
+- Exemplo escolhido `[6, 5, 4, 2, 1]` produz exatamente 3 sucessos.
+- Todas as 36 combinações de dois d6, com alvos de 0 a 7, conferidas por valor individual.
+- Limites inclusivos, zero sucessos, todos com sucesso e alvos fora do intervalo natural.
+- Repetições independentes, ordem dos dados, comentário único e número de sorteios exato.
+- Parser e handler rejeitam tentativas inválidas sem sorteio ou consulta ao banco.
+- Contagens válidas também não consultam o banco, pois não precisam de atributos.
+- 100 resultados e comentário com emojis divididos sem perda e dentro do limite do Discord.
+- Menção em comentário não é confundida com comparação e permanece escapada.
+- Regressão de perfis, permissões, rolagens normais, formatação e sintaxe já existente.
+
+A primeira execução encontrou uma regressão no tratamento de comentários iniciados por menção
+do Discord (`<@...>`); o detector foi corrigido e o caso entrou na suíte. A sintaxe `<<` e
+comparações como `>=` continuam sem suporte e não são ignoradas como comentários de operador.
+
+O README simplificado e sua declaração de uso de IA foram preservados. Banco, configuração e
+credenciais não foram alterados. **Contagem de sucessos ainda não validada no Discord real.**
+
+## Registro anterior: centralização, seta longa e críticos naturais
 
 O usuário solicitou centralização dos totais, em especial números isolados de um dígito, e uma
 seta mais longa. Foi substituído o alinhamento à direita por centralização e `←` por `⟵`.

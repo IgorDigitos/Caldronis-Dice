@@ -7,10 +7,11 @@ from commands.administration import Configuration, Master
 from commands.attributes import Attributes
 from commands.common import CommandTree
 from commands.profiles import register
-from config import Settings
+from config import ROOT, Settings
 from message_handler import MessageHandler
 from profiles.repository import Repository
 from profiles.service import ProfileService
+from runtime_lock import AlreadyRunningError, InstanceLock
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,11 @@ def main() -> int:
     logging.getLogger("discord").setLevel(logging.WARNING)
     try:
         settings = Settings.from_env()
-        CaldronisClient(settings).run(settings.token, log_handler=None)
+        with InstanceLock(ROOT / "data" / ".bot.lock"):
+            CaldronisClient(settings).run(settings.token, log_handler=None)
+    except AlreadyRunningError:
+        logger.error("O bot já está aberto para este projeto. Encerre a outra instância.")
+        return 1
     except ValueError as exc:
         logger.error("%s", exc)
         return 1

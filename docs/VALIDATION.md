@@ -1,6 +1,39 @@
 # Validação local — 25/10/2026
 
-## Atualização atual: dados explosivos e críticos em dobro com !
+## Atualização atual: painel Windows de ligar e desligar
+
+O usuário pediu um executável na Área de Trabalho para dispensar o PowerShell. Foi criado um
+painel local em Tkinter, com Ligar, Desligar, estado da conexão e encerramento ao fechar a janela.
+O painel foi empacotado com PyInstaller 6.22.3 em `dist/CaldronisDice.exe`, com atalho na Área de
+Trabalho. É um controlador da instalação existente; depende da pasta do projeto e de `.venv`.
+
+O executável não contém token ou banco. Ele inicia `desktop_worker.py` com o Python do ambiente
+local, sem console, e recebe somente estados conhecidos. O estado conectado vem de `on_ready`,
+nunca apenas da existência do processo. A parada usa um comando local para cancelar a execução
+e fechar o cliente Discord; após 10 segundos sem saída, encerra somente o processo criado pelo
+controlador. O fim do canal de controle também encerra o worker se o painel cair.
+
+Travas de processo impedem múltiplos painéis/bots atualizados para o mesmo projeto e são liberadas
+pelo sistema mesmo após uma queda. Uma instância antiga iniciada antes da implementação da trava
+precisa ser encerrada manualmente uma vez, antes de migrar para o painel.
+
+**313 testes passaram em 4,99 s**, com os mesmos 32 avisos internos da biblioteca Discord.
+Ruff (análise e formatação) passou; `pip check` não encontrou incompatibilidades.
+PyInstaller e suas dependências são opcionais de empacotamento, não serviços externos.
+
+Testes novos cobrem trava entre instâncias, liberação após queda, validação dos arquivos locais,
+parada normal, limite de espera, encerramento apenas do filho, limpeza de canais, estados de
+erro e conexão, mensagens seguras, parada por EOF, botões reais Tkinter com controlador simulado
+e um processo Python real oculto de demonstração, iniciado e parado sem conectar ao Discord.
+
+O executável foi gerado e o atalho conferido. O manifesto do executável não inclui `.env` nem
+arquivos de banco. A rotina real de conexão via botões ainda precisa da conferência manual em
+[DESKTOP.md](DESKTOP.md); os testes novos não usam token real. Não houve commit ou push.
+O painel empacotado foi aberto e sua janela identificada no Windows. A captura de imagem expirou
+em duas tentativas, portanto a aparência não recebeu confirmação visual automática. O teste real
+de botões Tkinter e o processo de demonstração passaram; nenhum botão de conexão real foi acionado.
+
+## Registro anterior: dados explosivos e críticos em dobro com !
 
 O usuário autorizou `!` e esclareceu duas regras diferentes:
 
@@ -323,3 +356,14 @@ Não houve login, conexão Gateway, sincronização remota, envio real, instala�
 validação de permissões reais ou teste pelo celular. Token não foi solicitado nem usado.
 Não existe evidência de aprovação no Discord até executar [DISCORD_CHECKLIST.md](DISCORD_CHECKLIST.md).
 Sem deploy, commit ou push automático.
+# Soma por dado com ++ — 26/10/2026
+
+- `2d30++5`: cada dado recebe +5; naturais 15 e 9 produzem modificados 20 e 14 e total 34.
+- Suporte a espaços, comentários e `#`; listas decrescentes e negrito apenas nos extremos naturais.
+- Nesta etapa: um grupo de dados, bônus inteiro de 0 a 1.000.000.000; combinações com
+  `!`, contagens, atributos e outras somas são rejeitadas antes de sortear.
+- 342 testes automatizados passaram, incluindo exemplo da imagem, cálculo exaustivo de dois d6,
+  regressão de `+`, repetição, handler, sintaxe inválida e divisão de mensagens grandes.
+- Ruff: análise e formatação aprovadas. Persistem avisos de depreciação de `discord.py`.
+- Falta validar o novo formato e os cálculos no Discord real. Nenhum commit ou push nesta etapa.
+

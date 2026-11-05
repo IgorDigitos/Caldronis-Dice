@@ -39,6 +39,8 @@ def test_repeat_parser(source, count):
         "/r 2#d30",
         "-2#d30",
         "# título",
+        "# D20 dicas para iniciantes",
+        "## d6 regras da mesa",
     ],
 )
 def test_repeat_not_at_start_ignored(source):

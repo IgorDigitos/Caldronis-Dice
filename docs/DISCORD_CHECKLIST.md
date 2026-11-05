@@ -57,7 +57,9 @@ Não inclua token ou informações privadas nas evidências.
 - [ ] `5d6>>4` e `5d6<<3` sem ! continuam com peso 1 por dado elegível.
 - [ ] `d6!>>7` e `d6!<<0`: zero, pois o crítico também precisa atender ao alvo.
 - [ ] `d6 !`, `d6!!`, `d6!5`, `d6!+`: erro, sem rolagem parcial.
-- [ ] Se uma explosão exigir mais de 100 sorteios, inclusive repetições: erro sem resultado parcial.
+- [ ] `100d6!`: completa normalmente, usando a reserva de explosões.
+- [ ] Se as explosões exigirem mais de 100 sorteios extras, inclusive repetições: erro sem resultado parcial.
+- [ ] `# D20 dicas` (cabeçalho Markdown): o bot não responde.
 - [ ] `2#d30 atacar`: comentário único ao final, sem alterar cálculos.
 - [ ] `0#d30`, `101#d30`, `2#d30+`, `2#d1`, `2#2#d30`: erro sem resultado parcial.
 - [ ] `51#2d6`: erro por mais de 100 dados; `100#d6+1`: erro por mais de 100 termos.

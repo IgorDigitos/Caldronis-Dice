@@ -41,7 +41,7 @@ def test_ignored(source):
         "d30+",
         "d30abc",
         "d20+FOR-CON-",
-        "d20++2",
+        "d20+++2",
         "d20*2",
         "d20 * 2",
         "d20/2",

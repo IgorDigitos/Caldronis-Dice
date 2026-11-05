@@ -18,6 +18,9 @@ Use um servidor/canal de testes. Marque cada caso somente depois de conferir o r
 
 | Feito | Digite ou execute | O que deve acontecer |
 | --- | --- | --- |
+| [ ] | `2d30++5` | Total = soma dos naturais + 10; mostrar modificados e naturais em duas listas decrescentes, apenas extremos naturais em negrito |
+| [ ] | `2#2d30++5 ataque` | Duas linhas independentes, cada dado recebe +5; comentário uma vez |
+| [ ] | `2d30++5 >>4` e `2d30!++5` | Erro claro, sem rolagem parcial |
 | [ ] | `2#d30` | Duas linhas na mesma resposta, cada total em caixa com espaço dos dois lados; sem soma geral |
 | [ ] | `5#d30-10` | Cinco totais separados; caixas com a mesma largura e números centralizados, inclusive se houver negativos |
 | [ ] | `d4` | Quando sair um único dígito, conferir margens iguais dos dois lados e seta longa `⟵` |
@@ -31,7 +34,8 @@ Use um servidor/canal de testes. Marque cada caso somente depois de conferir o r
 | [ ] | `5d6<<0` e `5d6<<6` | O primeiro retorna zero; o segundo retorna cinco |
 | [ ] | `5d6<<`, `5d6<<3+1` e `5d6+FOR<<3` | Erro sem executar parcialmente a expressão |
 | [ ] | `d6!` | Cada 6 gera outro d6; somar todos os valores, mostrando inclusive os extras |
-| [ ] | `2#d6!` | Duas linhas independentes; orçamento de 100 sorteios compartilhado |
+| [ ] | `2#d6!` | Duas linhas independentes; reserva de 100 sorteios extras compartilhada |
+| [ ] | `100d6!` | Completa normalmente; explosões usam a reserva própria |
 | [ ] | `5d6!>>4` | 4 e 5 valem 1; 6 vale 2; exatamente cinco sorteios, sem extras |
 | [ ] | `5d6!<<3` | 2 e 3 valem 1; 1 vale 2; exatamente cinco sorteios, sem extras |
 | [ ] | `d6 !`, `d6!!` e `d6!5` | Erro, sem rolagem parcial |

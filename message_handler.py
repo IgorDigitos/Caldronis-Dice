@@ -24,29 +24,43 @@ def text_length(text: str) -> int:
 def _result_parts(result: RollResult, total_width: int | None = None) -> list[str]:
     tokens = re.findall(
         r"[0-9]*d[0-9]+!|[0-9]+d[0-9]+|[A-Za-z][A-Za-z0-9_]*|[0-9]+",
-        re.split(r">>|<<", result.expression.original, maxsplit=1)[0],
+        re.split(r">>|<<|\+\+", result.expression.original, maxsplit=1)[0],
         flags=re.IGNORECASE | re.ASCII,
     )
     # Espaços inseparáveis preservam a margem dentro do código inline no Discord.
     number = str(result.total)
     padded = number.center(total_width or len(number), "\u00a0")
     parts = [f"`\u00a0{padded}\u00a0` ⟵"]
+    if result.expression.per_die_bonus is not None:
+        # Fracionar por valor também preserva resultados grandes ao dividir mensagens.
+        adjusted = sorted(
+            (value + result.expression.per_die_bonus for value in result.details[0].values),
+            reverse=True,
+        )
+        parts.append(" [")
+        for index, value in enumerate(adjusted):
+            parts.append((", " if index else "") + str(value))
+        parts.append("] ⟵")
     for index, (term, detail, token) in enumerate(
         zip(result.expression.terms, result.details, tokens, strict=True)
     ):
         prefix = " " if index == 0 else (" - " if term.sign < 0 else " + ")
         if term.kind == "dice":
             ordered = sorted(detail.values, reverse=True)
-            values = ", ".join(
-                f"**{value}**" if value in (1, term.value) else str(value) for value in ordered
-            )
             if result.expression.repeat_count is not None:
                 token = detail.label
-            parts.append(f"{prefix}[{values}] {token}")
+            # Um trecho por valor: explosões longas podem passar do limite de uma mensagem.
+            parts.append(f"{prefix}[")
+            for position, value in enumerate(ordered):
+                text = f"**{value}**" if value in (1, term.value) else str(value)
+                parts.append((", " if position else "") + text)
+            parts.append(f"] {token}")
         else:
             parts.append(f"{prefix}{token}")
     if result.expression.count_target is not None:
         parts.append(f" {result.expression.count_operator} {result.expression.count_target}")
+    if result.expression.per_die_bonus is not None:
+        parts.append(f" ++ {result.expression.per_die_bonus}")
     return parts
 
 

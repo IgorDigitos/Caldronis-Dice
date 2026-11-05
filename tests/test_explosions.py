@@ -122,29 +122,37 @@ def test_attribute_resolution_precedes_any_draw():
         roll_many(parse("2#d6!+FOR"), {}, forbidden)
 
 
-def test_exactly_hundred_draws_can_complete():
-    values = iter([5] * 99 + [0])
+def test_exactly_hundred_extra_draws_can_complete():
+    values = iter([5] * 100 + [0])
     result = roll(parse("d6!"), {}, lambda sides: next(values))
-    assert result.total == 595
-    assert len(result.details[0].values) == 100
+    assert result.total == 601
+    assert len(result.details[0].values) == 101
+
+
+def test_hundred_exploding_dice_have_own_reserve():
+    # Antes, qualquer 6 em 100d6! esgotava o orçamento e a rolagem sempre falhava.
+    values = iter([5] * 20 + [0] * 100)
+    result = roll(parse("100d6!"), {}, lambda sides: next(values))
+    assert len(result.details[0].values) == 120
+    assert result.total == 20 * 6 + 100
 
 
 def test_budget_shared_across_repetitions():
-    values = iter([5] * 98 + [0, 0])
+    values = iter([5] * 100 + [0, 0])
     results = roll_many(parse("2#d6!"), {}, lambda sides: next(values))
-    assert [len(result.details[0].values) for result in results] == [99, 1]
-    assert [result.total for result in results] == [589, 1]
+    assert [len(result.details[0].values) for result in results] == [101, 1]
+    assert [result.total for result in results] == [601, 1]
 
 
 def test_exhausted_budget_is_not_reset_for_next_repetition():
-    values = iter([5] * 99 + [0])
-    with pytest.raises(DiceError, match="100 sorteios"):
+    values = iter([5] * 100 + [0, 5])
+    with pytest.raises(DiceError, match="100 sorteios extras"):
         roll_many(parse("2#d6!"), {}, lambda sides: next(values))
 
 
 def test_exhausted_budget_is_not_reset_for_next_term():
-    values = iter([5] * 98 + [0, 3])
-    with pytest.raises(DiceError, match="100 sorteios"):
+    values = iter([5] * 100 + [0, 3])
+    with pytest.raises(DiceError, match="100 sorteios extras"):
         roll(parse("d6!+d4!"), {}, lambda sides: next(values))
 
 
@@ -168,10 +176,10 @@ def test_infinite_maximums_stop_at_hundred_and_reply_only_error(monkeypatch):
         reply=AsyncMock(),
     )
     asyncio.run(MessageHandler(repo).handle(message))
-    assert len(calls) == 100
+    assert len(calls) == 101
     message.reply.assert_awaited_once()
     output = message.reply.await_args.kwargs["content"]
-    assert "100 sorteios" in output
+    assert "100 sorteios extras" in output
     assert "⟵" not in output
     repo.attributes.assert_not_awaited()
 
@@ -184,6 +192,17 @@ def test_long_explosion_preserves_every_value_and_comment():
     assert "".join(output).count("**100000**") == 99
     assert "".join(output).count("**1**") == 1
     assert "".join(output).count("😀") == 900
+
+
+def test_long_explosion_list_is_split_across_messages():
+    # 100 dados + 100 extras de 6 dígitos não cabem em uma única mensagem.
+    values = iter([99999] * 100 + [0] * 100)
+    result = roll(parse("100d100000!"), {}, lambda sides: next(values))
+    output = format_result(result)
+    assert len(output) > 1
+    assert all(text_length(message) <= 1900 for message in output)
+    assert "".join(output).count("**100000**") == 100
+    assert "".join(output).count("**1**") == 100
 
 
 def test_attribute_names_starting_with_dice_are_preserved():

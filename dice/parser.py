@@ -13,7 +13,8 @@ from dice.limits import (
 )
 from dice.models import DiceError, Expression, Term
 
-START = re.compile(r"(?:[0-9]+#|#\s*[0-9]*d[0-9]+|[0-9]*d[0-9]+)", re.IGNORECASE | re.ASCII)
+# "#d20" (sem espaço) recebe orientação; "# D20 ..." é cabeçalho Markdown e fica ignorado.
+START = re.compile(r"(?:[0-9]+#|#[0-9]*d[0-9]+|[0-9]*d[0-9]+)", re.IGNORECASE | re.ASCII)
 REPEAT = re.compile(r"([0-9]+)#", re.ASCII)
 DIE = re.compile(r"([0-9]*)d([0-9]+)(!)?", re.IGNORECASE | re.ASCII)
 INTEGER = re.compile(r"[0-9]+", re.ASCII)
@@ -51,6 +52,28 @@ def _parse_count(
 def is_candidate(content: str) -> bool:
     # Não percorrer uma mensagem arbitrariamente grande antes do limite.
     return START.match(content[: MAX_INPUT + 1].lstrip()) is not None
+
+
+def _parse_per_die(
+    source: str, position: int, terms: list[Term], repeat_count: int | None
+) -> Expression:
+    if len(terms) != 1 or terms[0].kind != "dice" or terms[0].exploding:
+        raise DiceError("Com ++, use um único grupo sem !, somas ou atributos. Exemplo: 2d30++5.")
+    position += 2
+    while position < len(source) and source[position].isspace():
+        position += 1
+    match = INTEGER.match(source, position)
+    if not match or len(match.group()) > 10 or int(match.group()) > MAX_INTEGER:
+        raise DiceError("Depois de ++, use um bônus inteiro de 0 a 1.000.000.000.")
+    end = match.end()
+    if end < len(source) and not source[end].isspace():
+        raise DiceError("Após o bônus de ++, use somente um comentário separado por espaço.")
+    comment = source[end:].strip()
+    if comment and _starts_operator(comment):
+        raise DiceError("Não combine ++ com outros operadores. Exemplo: 2#2d30++5 ataque.")
+    return Expression(
+        source[:end], comment, tuple(terms), repeat_count, per_die_bonus=int(match.group())
+    )
 
 
 def parse(content: str) -> Expression | None:
@@ -119,6 +142,8 @@ def parse(content: str) -> Expression | None:
         if position == len(source):
             return Expression(source[:expression_end], "", tuple(terms), repeat_count)
         char = source[position]
+        if source.startswith("++", position):
+            return _parse_per_die(source, position, terms, repeat_count)
         if source.startswith((">>", "<<"), position):
             return _parse_count(source, position, terms, repeat_count)
         if char in "+-":

@@ -3,6 +3,8 @@
 MAX_INPUT = 1000
 MAX_TERMS = 30
 MAX_DICE = 100
+# Reserva separada para dados extras de explosão, compartilhada por termos e repetições.
+MAX_EXPLOSIONS = 100
 MAX_REPETITIONS = 100
 MAX_BATCH_TERMS = 100
 MAX_INTEGER = 1_000_000_000

@@ -22,6 +22,7 @@ As rolagens são processadas por um parser restrito e um gerador aleatório; nã
 | --- | --- |
 | `d30` | Rola um dado de 30 lados |
 | `2d30+8` | Soma dois dados de 30 lados e adiciona 8 |
+| `2d30++5` | Adiciona 5 a cada dado e soma os resultados modificados |
 | `d30+FOR` | Soma ao dado a FOR cadastrada do jogador |
 | `d30+FOR atacar o guarda` | Faz a rolagem e mantém o texto como comentário |
 | `2#d30` | Faz duas rolagens independentes |
@@ -37,6 +38,12 @@ A expressão precisa estar no início da mensagem. Frases como `Vou usar d30` s�
 Os dados sempre aparecem do maior para o menor, inclusive com `#`, `>>` e `<<`.
 Cada repetição permanece em sua própria linha, sem mudar a ordem das rolagens.
 O 1 e o máximo natural de cada dado aparecem em negrito, sem alterar o cálculo.
+
+Com `++`, o bônus é aplicado a cada dado: `2d30++5` com `[15, 9]` mostra
+`34 ⟵ [20, 14] ⟵ [15, 9] 2d30 ++ 5`. Os dados continuam ordenados do maior para o menor;
+somente os extremos naturais ficam em negrito. Aceita espaços, comentários e repetição
+(`2#2d30++5 ataque`), com uma linha por rolagem. Nesta versão, use um único grupo e bônus
+inteiro de 0 a 1.000.000.000; não combine `++` com atributos, `!`, contagens ou outras somas.
 
 Na contagem, o número à esquerda mostra quantos dados atenderam ao alvo, sem rótulos de
 sucesso ou fracasso. Exemplo: `5d6>>4` com `[6, 5, 4, 2, 1]` retorna **3**;
@@ -59,8 +66,9 @@ Rolagens comuns com atributos continuam funcionando normalmente.
 
 O dobro só se aplica a dados que atendem ao alvo. O `!` deve ficar junto do dado: `d6!`, não `d6 !`.
 Todos os resultados ficam visíveis, inclusive os extras das explosões, em ordem decrescente.
-São aceitos até **100 sorteios por mensagem**, somando dados iniciais, extras e todas as repetições.
-Se for necessário ultrapassar esse limite, o bot retorna erro sem mostrar resultado parcial.
+São aceitos até **100 dados por mensagem**, somando todas as repetições, e uma reserva separada de
+**100 sorteios extras** para explosões, também compartilhada pelas repetições. Assim `100d6!`
+funciona normalmente. Se as explosões passarem da reserva, o bot retorna erro sem resultado parcial.
 Não há suporte a `!!` ou a um alvo de explosão como `d6!5`.
 
 ## Comandos
@@ -115,6 +123,12 @@ DATABASE_PATH=data/caldronis.sqlite3
 
 ## Executar e testar
 
+No Windows, o painel **Caldronis Dice** da Área de Trabalho permite **Ligar** e **Desligar**
+sem abrir o PowerShell. Fechar a janela também desliga o bot. O painel usa a instalação local e
+mantém o `.env` e o banco na pasta do projeto. Veja [como usar e reconstruir](docs/DESKTOP.md).
+
+Se o bot estiver aberto no PowerShell antes do primeiro uso do painel, encerre-o com `Ctrl+C`.
+
 Inicie o bot na pasta do projeto:
 
 ```powershell
@@ -131,7 +145,8 @@ Para executar os testes locais:
 
 ## Limites e estado atual
 
-- Dados de 2 a 100.000 lados, até 100 sorteios por mensagem, incluindo explosões e repetições.
+- Dados de 2 a 100.000 lados, até 100 dados por mensagem (com repetições) e mais 100 sorteios
+  extras reservados para explosões.
 - Até 30 termos por expressão, 100 termos no conjunto de repetições e 1.000 caracteres por mensagem.
 - Até 40 atributos por perfil; nomes de até 32 caracteres e valores inteiros.
 - Não inclui combate, inventário, painel web ou modificadores de manter/descartar.
@@ -142,6 +157,7 @@ de cada mudança e configuração no servidor, incluindo a aparência pelo celul
 
 ## Documentação
 
+- [Painel para Windows: ligar e desligar](docs/DESKTOP.md)
 - [Conferência rápida no Discord](docs/QUICK_VALIDATION.md)
 - [Checklist completo](docs/DISCORD_CHECKLIST.md)
 - [Resultados dos testes locais](docs/VALIDATION.md)

@@ -3,21 +3,25 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from operator import ge, le
 
-from dice.limits import MAX_DICE
+from dice.limits import MAX_EXPLOSIONS
 from dice.models import Detail, DiceError, Expression, RollResult
 
 
 @dataclass
 class _RollBudget:
-    remaining: int = MAX_DICE
+    """Dados iniciais já são limitados pelo parser; aqui só se controlam os extras."""
 
-    def draw(self, sides: int, random_source: Callable[[int], int]) -> int:
-        if self.remaining == 0:
-            raise DiceError(
-                "A rolagem exigiu mais de 100 sorteios, contando explosões e repetições. "
-                "Nenhum resultado parcial foi exibido; use menos dados ou repetições."
-            )
-        self.remaining -= 1
+    extra_remaining: int = MAX_EXPLOSIONS
+
+    def draw(self, sides: int, random_source: Callable[[int], int], extra: bool = False) -> int:
+        if extra:
+            if self.extra_remaining == 0:
+                raise DiceError(
+                    f"As explosões exigiram mais de {MAX_EXPLOSIONS} sorteios extras, "
+                    "contando todas as repetições. Nenhum resultado parcial foi exibido; "
+                    "use menos dados explosivos ou repetições."
+                )
+            self.extra_remaining -= 1
         return random_source(sides) + 1
 
 
@@ -36,12 +40,13 @@ def _roll(
         if term.kind == "dice":
             sides = int(term.value)
             draws = []
+            explodes = term.exploding and expression.count_target is None
             for _ in range(term.count):
-                while True:
-                    value = budget.draw(sides, random_source)
+                value = budget.draw(sides, random_source)
+                draws.append(value)
+                while explodes and value == sides:
+                    value = budget.draw(sides, random_source, extra=True)
                     draws.append(value)
-                    if not term.exploding or expression.count_target is not None or value != sides:
-                        break
             values = tuple(draws)
             label = f"{term.count}d{sides}" + ("!" if term.exploding else "")
         elif term.kind == "attribute":
@@ -63,6 +68,8 @@ def _roll(
             )
     else:
         total = sum(item.subtotal for item in details)
+        if expression.per_die_bonus is not None:
+            total += len(details[0].values) * expression.per_die_bonus
     return RollResult(expression, tuple(details), total)
 
 

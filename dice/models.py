@@ -23,6 +23,7 @@ class Expression:
     repeat_count: int | None = None
     count_target: int | None = None
     count_operator: Literal[">>", "<<"] = ">>"
+    per_die_bonus: int | None = None
 
     @property
     def attributes(self) -> set[str]:

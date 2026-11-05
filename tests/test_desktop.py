@@ -4,14 +4,15 @@ import shutil
 import subprocess
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
 
-from desktop_controller import BotController
-from desktop_worker import serve
+from desktop_controller import BotController, LogEntry, decode_event
+from desktop_worker import emit_log, serve
 from runtime_lock import AlreadyRunningError, InstanceLock
 
 
@@ -120,6 +121,89 @@ def test_only_known_status_messages_are_exposed(tmp_path):
     assert controller.events.empty()
 
 
+def test_known_log_codes_become_fixed_text():
+    entry = decode_event("LOG:login\n")
+    assert isinstance(entry, LogEntry)
+    assert entry.level == "info" and "HTTPS" in entry.text
+    assert decode_event("LOG:ready:3").text == "Conectado e pronto em 3 servidor(es)."
+    assert (
+        decode_event("LOG:command:atributo definir").text == "Comando /atributo definir executado."
+    )
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "LOG:unknown",
+        "LOG:login:extra",  # código sem argumento não aceita argumento
+        "LOG:ready",  # código com argumento exige argumento
+        "LOG:ready:<@123> token",
+        "LOG:command:" + "a" * 41,
+        "LOG:command:DROP;TABLE",
+        "Traceback (most recent call last):",
+    ],
+)
+def test_unknown_or_unsafe_log_lines_are_dropped(line):
+    assert decode_event(line) is None
+
+
+def test_worker_never_writes_unsafe_argument(capsys):
+    emit_log("command", "atributo definir")
+    emit_log("command", "<@123> segredo!")
+    emit_log("ready", 2)
+    assert capsys.readouterr().out.splitlines() == ["LOG:command:atributo definir", "LOG:ready:2"]
+
+
+def test_controller_collects_worker_and_own_logs(tmp_path):
+    controller = controller_with_process(tmp_path)
+    controller.events.put(decode_event("LOG:gateway"))
+    controller.events.put("online")
+    logs = controller.take_logs()
+    assert [entry.level for entry in logs] == ["info"]
+    assert controller.state == "online" and controller.online_since is not None
+    controller.stop()
+    controller.process.poll.return_value = 0
+    controller.poll()
+    texts = [entry.text for entry in controller.take_logs()]
+    assert texts == ["Desligamento solicitado.", "Bot desligado."]
+    assert controller.take_logs() == []
+    assert controller.online_since is None
+
+
+def test_error_state_is_logged_once(tmp_path):
+    controller = controller_with_process(tmp_path)
+    controller.events.put("missing_config")
+    controller.process.poll.return_value = 1
+    controller.poll()
+    logs = controller.take_logs()
+    assert [(entry.level, entry.text) for entry in logs] == [
+        ("error", "Confira DISCORD_TOKEN (e DEV_GUILD_ID, se usado) no .env do projeto.")
+    ]
+
+
+def test_message_handler_reports_activity_without_content():
+    from unittest.mock import AsyncMock
+
+    from message_handler import MessageHandler
+
+    reports = []
+    handler = MessageHandler(SimpleNamespace(attributes=AsyncMock()), lambda *a: reports.append(a))
+
+    def message(content):
+        return SimpleNamespace(
+            content=content,
+            guild=SimpleNamespace(id=1),
+            author=SimpleNamespace(bot=False),
+            webhook_id=None,
+            reply=AsyncMock(),
+        )
+
+    asyncio.run(handler.handle(message("d20 segredo do jogador")))
+    asyncio.run(handler.handle(message("d1")))
+    asyncio.run(handler.handle(message("olá")))
+    assert reports == [("roll",), ("roll_rejected",)]
+
+
 @pytest.mark.parametrize("command", ["STOP\n", ""])
 def test_worker_closes_client_on_stop_or_parent_eof(command):
     class FakeClient:
@@ -160,7 +244,12 @@ def test_gui_start_stop_buttons_without_discord(monkeypatch, tmp_path):
         panel.controller = MagicMock()
         panel.controller.running = False
         panel.controller.poll.return_value = "stopped"
+        panel.controller.take_logs.return_value = [
+            LogEntry(datetime(2026, 11, 5, 18, 30), "ok", "Conectado e pronto em 2 servidor(es).")
+        ]
         panel.refresh()
+        assert "18:30:00  Conectado e pronto em 2 servidor(es)." in panel.log.get("1.0", "end")
+        panel.controller.take_logs.return_value = []
         panel.start_button.invoke()
         panel.controller.start.assert_called_once_with()
         panel.controller.running = True

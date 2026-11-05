@@ -46,6 +46,11 @@ class CommandTree(app_commands.CommandTree):
             text = "Não foi possível concluir o comando. Contate o responsável pelo bot."
         # Registrar apenas classe do erro; nunca token, argumentos ou conteúdo do chat.
         logger.warning("Comando não concluído (%s).", type(cause).__name__)
+        report = getattr(self.client, "report", None)
+        if callable(report):
+            report(
+                "storage_error" if isinstance(cause, (sqlite3.Error, OSError)) else "command_error"
+            )
         try:
             await private_response(interaction, text)
         except (discord.HTTPException, OSError):

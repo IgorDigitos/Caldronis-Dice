@@ -1,6 +1,7 @@
 import logging
 import re
 import sqlite3
+from collections.abc import Callable
 
 import discord
 
@@ -108,9 +109,15 @@ def format_batch(results: tuple[RollResult, ...]) -> tuple[str, ...]:
     return _pack(parts)
 
 
+def _ignore_report(code: str, argument=None):
+    pass
+
+
 class MessageHandler:
-    def __init__(self, repository: Repository):
+    def __init__(self, repository: Repository, report: Callable[..., None] = _ignore_report):
         self.repository = repository
+        # Recebe só códigos de atividade; nunca conteúdo, autor ou servidor da mensagem.
+        self.report = report
 
     async def handle(self, message):
         if message.guild is None or message.author.bot or message.webhook_id is not None:
@@ -128,10 +135,13 @@ class MessageHandler:
             for content in format_batch(results):
                 if not await self._reply(message, content=content):
                     break
+            self.report("roll")
         except DiceError as exc:
+            self.report("roll_rejected")
             # Mensagens de canal não podem ser ephemeral. Não ecoar conteúdo do chat.
             await self._reply(message, content=f"Não foi possível rolar: {exc}", delete_after=15)
         except (sqlite3.Error, OSError):
+            self.report("storage_error")
             logger.warning("Falha de armazenamento ao processar rolagem.")
             await self._reply(
                 message,

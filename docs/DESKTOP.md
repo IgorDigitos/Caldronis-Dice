@@ -5,6 +5,9 @@ Abra **Caldronis Dice** pelo atalho na Área de Trabalho.
 - **Ligar:** inicia o bot sem abrir o PowerShell.
 - **Desligar:** encerra a conexão e o processo do bot.
 - **Fechar a janela:** também desliga o bot.
+- **Atividade:** registro em tempo real do que o bot está fazendo (autenticação HTTPS, conexão
+  WSS com o gateway, sincronização de comandos, rolagens respondidas, reconexões e erros), com
+  horário e cores por gravidade. Os botões **Copiar** e **Limpar** atuam só nesse registro.
 
 O painel mostra “conectado” somente depois da confirmação do Discord. Enquanto tenta estabelecer
 a conexão ou reconectar, mostra esse estado. Ligar novamente enquanto o bot está ativo não cria
@@ -27,8 +30,11 @@ executável sem recriar o atalho. Atualizações nas rolagens entram ao desligar
 não é necessário reconstruir o painel a cada alteração no motor de dados.
 
 Token, banco e histórico do chat não são incluídos no executável. O painel recebe somente estados
-conhecidos; não exibe respostas HTTP, conteúdo de mensagens nem credenciais. Não cria histórico
-de rolagens ou novo arquivo de logs. O executável não foi assinado digitalmente.
+e códigos de atividade conhecidos (`STATE:` e `LOG:`), traduzidos para textos fixos; argumentos
+são limitados a números e nomes de comando curtos. Linhas desconhecidas são descartadas. Não
+exibe respostas HTTP, conteúdo de mensagens, autores, servidores nem credenciais. O registro de
+atividade fica só na memória da janela (até 500 linhas) e não cria arquivo de logs. O executável
+não foi assinado digitalmente.
 
 ## Encerramento
 
@@ -55,6 +61,7 @@ Referência: [opções oficiais do PyInstaller](https://pyinstaller.org/en/stabl
 
 - [ ] Abrir o atalho: somente o painel aparece, sem PowerShell ou console.
 - [ ] Ligar: aguardar “Ligado e conectado ao Discord” e conferir `d30` no canal de testes.
+- [ ] Atividade: ver autenticação, gateway, comandos sincronizados e “Rolagem respondida”.
 - [ ] Desligar: conferir que o bot para de responder.
 - [ ] Ligar novamente: conferir `d30+FOR` e persistência dos atributos.
 - [ ] Fechar a janela com o bot ligado: conferir encerramento.

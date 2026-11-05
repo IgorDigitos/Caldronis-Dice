@@ -1,5 +1,6 @@
 import logging
 import sqlite3
+import sys
 
 import discord
 
@@ -26,31 +27,55 @@ class CaldronisClient(discord.Client):
         self.settings = settings
         self.repository = Repository(settings.database_path)
         service = ProfileService(self.repository)
-        self.handler = MessageHandler(self.repository)
+        self.handler = MessageHandler(self.repository, self.report)
         self.tree = CommandTree(self)
         register(self.tree, service)
         for group in (Attributes(service), Master(service), Configuration(service)):
             self.tree.add_command(group)
 
+    def report(self, code: str, argument: str | int | None = None):
+        """Atividade operacional sem conteúdo do chat; o painel desktop a exibe."""
+
     async def setup_hook(self):
         await self.repository.initialize()
+        self.report("database_ready")
         if self.settings.dev_guild_id:
             guild = discord.Object(id=self.settings.dev_guild_id)
             self.tree.copy_global_to(guild=guild)
-            await self.tree.sync(guild=guild)
+            self.report("sync_guild")
+            synced = await self.tree.sync(guild=guild)
         else:
-            await self.tree.sync()
+            self.report("sync_global")
+            synced = await self.tree.sync()
+        self.report("synced", len(synced))
         logger.info("Comandos sincronizados.")
 
     async def on_ready(self):
+        self.report("ready", len(self.guilds))
         logger.info("Caldronis Dice conectado.")
+
+    async def on_resumed(self):
+        self.report("resumed")
+
+    async def on_guild_join(self, guild: discord.Guild):
+        self.report("guild_join")
+
+    async def on_guild_remove(self, guild: discord.Guild):
+        self.report("guild_remove")
+
+    async def on_app_command_completion(self, interaction: discord.Interaction, command):
+        self.report("command", command.qualified_name)
 
     async def on_message(self, message: discord.Message):
         await self.handler.handle(message)
 
     async def on_error(self, event_method, *args, **kwargs):
-        # O padrão da biblioteca pode incluir repr da mensagem; não usá-lo.
-        logger.error("Falha inesperada em evento do Discord; conteúdo omitido.")
+        # O padrão da biblioteca pode incluir repr da mensagem; registrar só a classe do erro.
+        error = sys.exc_info()[0]
+        logger.error(
+            "Falha inesperada em evento do Discord (%s); conteúdo omitido.",
+            error.__name__ if error else "desconhecida",
+        )
 
 
 def main() -> int:

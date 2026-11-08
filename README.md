@@ -143,6 +143,31 @@ Para executar os testes locais:
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
+## Ponte com o Caldron Sheets (opcional)
+
+O app [Caldron Sheets](https://caldron-sheets.web.app) tem uma aba **Mesa**. Ali o jogador escreve
+`d30+FOR ataque` (ou clica num atributo) e o pedido vai para o Firestore. Com a ponte ligada, este bot:
+
+1. reserva o pedido (nunca rola duas vezes);
+2. lê os atributos **atuais** da ficha do personagem (base + extra − perda, e `NIVEL`);
+3. rola com o mesmo motor do Discord e grava o resultado no app;
+4. posta no canal pelo **webhook**, com o nome do personagem. Rolagens do "Canal do Mestre" vão para
+   outro webhook (canal secreto).
+
+Pedidos que ficaram presos sem internet (mais de 60 s até chegar) ou que esperaram o bot desligado
+(mais de 5 min) **não** são rolados: o app mostra o motivo. Limite de 6 rolagens a cada 30 s por pessoa.
+Se o Discord falhar, a rolagem continua salva no app.
+
+Configuração, no `.env`:
+
+- `FIREBASE_CREDENCIAL=data/firebase-conta-servico.json`: no console do Firebase, abra
+  ⚙ Configurações do projeto → Contas de serviço → **Gerar nova chave privada** e salve o arquivo em
+  `data/` (fora do git). Ela dá acesso total ao banco: trate como o token do Discord.
+- `WEBHOOK_MESA` e `WEBHOOK_MESTRE`: no Discord, Editar canal → Integrações → Webhooks → Novo webhook →
+  Copiar URL. Um para o canal da mesa e outro para o canal que só o Mestre vê.
+
+Sem `FIREBASE_CREDENCIAL` a ponte fica desligada e o bot funciona como antes. O código está em `ponte/`.
+
 ## Limites e estado atual
 
 - Dados de 2 a 100.000 lados, até 100 dados por mensagem (com repetições) e mais 100 sorteios

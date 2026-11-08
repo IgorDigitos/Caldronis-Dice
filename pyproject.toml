@@ -7,7 +7,7 @@ name = "caldronis-dice"
 version = "0.1.0"
 description = "Rolador de dados para Discord com atributos por servidor"
 requires-python = ">=3.11"
-dependencies = ["discord.py>=2.6,<3", "python-dotenv>=1.1,<2"]
+dependencies = ["discord.py>=2.6,<3", "python-dotenv>=1.1,<2", "firebase-admin>=6.5,<8"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<10", "ruff>=0.14,<1"]
@@ -20,7 +20,7 @@ py-modules = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["dice*", "profiles*", "commands*"]
+include = ["dice*", "profiles*", "commands*", "ponte*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,7 +1,10 @@
+import asyncio
 import logging
+import os
 import sqlite3
 import sys
 
+import aiohttp
 import discord
 
 from commands.administration import Configuration, Master
@@ -32,6 +35,8 @@ class CaldronisClient(discord.Client):
         register(self.tree, service)
         for group in (Attributes(service), Master(service), Configuration(service)):
             self.tree.add_command(group)
+        self._watches_mesa: list = []
+        self._sessao_webhook: aiohttp.ClientSession | None = None
 
     def report(self, code: str, argument: str | int | None = None):
         """Atividade operacional sem conteúdo do chat; o painel desktop a exibe."""
@@ -49,6 +54,44 @@ class CaldronisClient(discord.Client):
             synced = await self.tree.sync()
         self.report("synced", len(synced))
         logger.info("Comandos sincronizados.")
+        await self._ligar_ponte_mesa()
+
+    async def _ligar_ponte_mesa(self):
+        """Rolagens pedidas pelo app Caldron Sheets (Firestore) → webhook do Discord."""
+        s = self.settings
+        if s.firebase_credencial is None and not (
+            os.getenv("FIRESTORE_EMULATOR_HOST") and s.firebase_projeto
+        ):
+            self.report("mesa_off")
+            return
+        try:
+            # Import tardio: sem a ponte configurada, o bot nem carrega o Firebase.
+            from ponte.firestore import ArmazemFirestore, conectar, escutar
+            from ponte.servico import PonteMesa
+            from ponte.webhook import EnviadorWebhook
+
+            db = await asyncio.to_thread(conectar, s.firebase_credencial, s.firebase_projeto)
+            armazem = ArmazemFirestore(db)
+            await asyncio.to_thread(armazem.recuperar_interrompidas)
+            self._sessao_webhook = aiohttp.ClientSession()
+            enviar = EnviadorWebhook(
+                {"mesa": s.webhook_mesa, "mestre": s.webhook_mestre}, self._sessao_webhook
+            )
+            ponte = PonteMesa(armazem, enviar, report=self.report)
+            self._watches_mesa = escutar(db, ponte, asyncio.get_running_loop())
+            self.report("mesa_ready")
+            logger.info("Ponte com o Caldron Sheets ligada.")
+        except Exception:  # noqa: BLE001 - a ponte nunca derruba o bot do Discord
+            logger.error("Falha ao ligar a ponte com o Caldron Sheets (detalhes omitidos).")
+            self.report("mesa_error")
+
+    async def close(self):
+        for watch in self._watches_mesa:
+            watch.unsubscribe()
+        self._watches_mesa = []
+        if self._sessao_webhook is not None:
+            await self._sessao_webhook.close()
+        await super().close()
 
     async def on_ready(self):
         self.report("ready", len(self.guilds))
